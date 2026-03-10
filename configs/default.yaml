@@ -9,6 +9,7 @@ model:
 
 hardware:
   max_ram_gb: 4
+  device: "auto"                  # "auto", "cpu", "cuda", "mps"
 
 curiosity:
   alpha: 0.3                   # prediction error weight
@@ -104,10 +105,23 @@ portage:
   include_genome: true
   return_always_possible: true
 
+memory:
+  max_size: 10000
+  consolidation_batch_size: 256    # batch size for similarity computations
+
+novelty:
+  max_visit_entries: 100000        # cap on visit count dictionary size
+  n_bins: 16
+
 training:
   phase: "prenatal"
   learning_rate: 1e-4
   batch_size: 1
+  gradient_accumulation_steps: 4   # effective batch = batch_size * this
+  max_grad_norm: 1.0               # gradient clipping norm
+  warmup_steps: 200                # linear LR warmup steps
+  lr_scheduler: "cosine"           # "cosine", "linear", or "none"
+  info_gain_sample_ratio: 0.25     # sample 25% of params for info gain
   checkpoint_every: 1000
   log_every: 10
 

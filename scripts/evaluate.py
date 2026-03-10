@@ -13,7 +13,7 @@ import sys
 
 import torch
 
-from eva.core.baby_brain import BabyBrain
+from eva.core.baby_brain import BabyBrain, detect_device
 from eva.core.config import EVAConfig
 from eva.core.tokenizer import EVATokenizer
 from eva.environment.nursery import NurseryEnvironment
@@ -72,6 +72,14 @@ def main() -> None:
     config = EVAConfig.from_yaml(args.config)
     tokenizer = EVATokenizer()
 
+    # Detect device
+    device_str = getattr(config.hardware, "device", "auto")
+    if device_str == "auto":
+        device = detect_device()
+    else:
+        device = torch.device(device_str)
+    logger.info("Using device: %s", device)
+
     # Load brain
     brain = BabyBrain(
         vocab_size=config.model.vocab_size,
@@ -79,8 +87,11 @@ def main() -> None:
         n_layers=config.model.n_layers,
         n_heads=config.model.n_heads,
         dtype_str=config.model.dtype,
+        device=device,
     )
-    checkpoint = torch.load(args.checkpoint, weights_only=False)
+    checkpoint = torch.load(
+        args.checkpoint, weights_only=False, map_location=device
+    )
     brain.load_state_dict(checkpoint["brain_state_dict"])
 
     # Test strings of increasing difficulty

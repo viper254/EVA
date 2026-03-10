@@ -47,15 +47,20 @@ class CuriosityEngine:
         self.novelty = NoveltyModule()
         self.empowerment = EmpowermentModule()
 
-    def prepare(self, brain: BabyBrain) -> None:
+    def prepare(
+        self, brain: BabyBrain, sample_ratio: float = 1.0
+    ) -> None:
         """Prepare for a learning step by snapshotting parameters.
 
         Must be called BEFORE the weight update.
 
         Args:
             brain: The BabyBrain model.
+            sample_ratio: Fraction of parameters to sample (0.0-1.0).
         """
-        self.information_gain.snapshot_before(brain)
+        self.information_gain.snapshot_before(
+            brain, sample_ratio=sample_ratio
+        )
 
     def compute_reward(
         self,
@@ -64,6 +69,7 @@ class CuriosityEngine:
         brain: BabyBrain,
         hidden_state: torch.Tensor,
         recent_outcomes: list[torch.Tensor],
+        sample_ratio: float = 1.0,
     ) -> tuple[float, dict[str, float]]:
         """Compute the combined curiosity reward.
 
@@ -73,6 +79,7 @@ class CuriosityEngine:
             brain: The BabyBrain model (after weight update).
             hidden_state: Current hidden state from the model.
             recent_outcomes: List of recent outcome embeddings.
+            sample_ratio: Fraction of parameters for info gain.
 
         Returns:
             Tuple of (total_reward, breakdown_dict).
@@ -84,7 +91,9 @@ class CuriosityEngine:
         )
 
         # 2. Information gain
-        info_gain = self.information_gain.compute(brain)
+        info_gain = self.information_gain.compute(
+            brain, sample_ratio=sample_ratio
+        )
 
         # 3. Novelty
         state_hash = self.novelty.hash_state(hidden_state)

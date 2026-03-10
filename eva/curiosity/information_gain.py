@@ -23,19 +23,26 @@ class InformationGainModule:
     def __init__(self) -> None:
         self._snapshot: Optional[dict[str, dict[str, float]]] = None
 
-    def snapshot_before(self, brain: BabyBrain) -> dict[str, dict[str, float]]:
+    def snapshot_before(
+        self, brain: BabyBrain, sample_ratio: float = 1.0
+    ) -> dict[str, dict[str, float]]:
         """Store parameter snapshot before a learning step.
 
         Args:
             brain: The BabyBrain model.
+            sample_ratio: Fraction of parameters to sample (0.0-1.0).
 
         Returns:
             The snapshot dictionary (also stored internally).
         """
-        self._snapshot = brain.get_parameter_snapshot()
+        self._snapshot = brain.get_parameter_snapshot(
+            sample_ratio=sample_ratio
+        )
         return self._snapshot
 
-    def compute(self, brain: BabyBrain) -> float:
+    def compute(
+        self, brain: BabyBrain, sample_ratio: float = 1.0
+    ) -> float:
         """Compare current params to stored snapshot.
 
         Sums absolute differences in mean and std across all layers.
@@ -43,6 +50,7 @@ class InformationGainModule:
 
         Args:
             brain: The BabyBrain model (after weight update).
+            sample_ratio: Fraction of parameters to sample (0.0-1.0).
 
         Returns:
             Total information gain score.
@@ -50,7 +58,7 @@ class InformationGainModule:
         if self._snapshot is None:
             return 0.0
 
-        current = brain.get_parameter_snapshot()
+        current = brain.get_parameter_snapshot(sample_ratio=sample_ratio)
         total_change = 0.0
 
         for name in self._snapshot:

@@ -66,6 +66,8 @@ class EVAConfig:
         self.developmental_emotions = ConfigSection(
             data.get("developmental_emotions", {})
         )
+        self.memory = ConfigSection(data.get("memory", {}))
+        self.novelty = ConfigSection(data.get("novelty", {}))
 
     @classmethod
     def from_yaml(cls, path: str) -> EVAConfig:

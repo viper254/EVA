@@ -16,6 +16,15 @@ import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
+
+def detect_device() -> torch.device:
+    """Auto-detect best available device: CUDA > MPS > CPU."""
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
 # Try to import Mamba SSM
 _MAMBA_AVAILABLE = False
 try:
@@ -87,6 +96,7 @@ class BabyBrain(nn.Module):
         n_layers: int = 12,
         n_heads: int = 12,
         dtype_str: str = "float16",
+        device: Optional[torch.device] = None,
     ) -> None:
         super().__init__()
 
@@ -95,6 +105,7 @@ class BabyBrain(nn.Module):
         self.n_layers = n_layers
         self.n_heads = n_heads
         self.dtype = torch.float16 if dtype_str == "float16" else torch.float32
+        self.device = device if device is not None else detect_device()
         self.architecture = "mamba" if _MAMBA_AVAILABLE else "transformer"
 
         # Embedding layer
@@ -120,18 +131,19 @@ class BabyBrain(nn.Module):
         # Store last hidden state
         self._last_hidden: Optional[torch.Tensor] = None
 
-        # Convert to target dtype
-        self.to(self.dtype)
+        # Convert to target dtype and move to device
+        self.to(dtype=self.dtype, device=self.device)
 
         # Log architecture info
         logger.info(
             "BabyBrain initialized: arch=%s, params=%d, "
-            "est_memory=%.3f GB, d_model=%d, n_layers=%d",
+            "est_memory=%.3f GB, d_model=%d, n_layers=%d, device=%s",
             self.architecture,
             self.parameter_count,
             self._estimate_memory_gb(),
             d_model,
             n_layers,
+            self.device,
         )
 
     @property
@@ -200,17 +212,30 @@ class BabyBrain(nn.Module):
             return self._last_hidden
         return torch.zeros(1, 1, self.d_model)
 
-    def get_parameter_snapshot(self) -> dict[str, dict[str, float]]:
+    def get_parameter_snapshot(
+        self, sample_ratio: float = 1.0
+    ) -> dict[str, dict[str, float]]:
         """Lightweight parameter snapshot — mean and std per layer.
 
         Used for information gain computation. NOT a full copy.
+
+        Args:
+            sample_ratio: Fraction of parameters to sample (0.0-1.0).
+                Use < 1.0 for faster snapshots at the cost of precision.
 
         Returns:
             Dict mapping layer name to {"mean": float, "std": float}.
         """
         snapshot: dict[str, dict[str, float]] = {}
-        for name, param in self.named_parameters():
-            if param.requires_grad:
+        params = [(n, p) for n, p in self.named_parameters() if p.requires_grad]
+
+        if sample_ratio < 1.0:
+            import random
+            k = max(1, int(len(params) * sample_ratio))
+            params = random.sample(params, k)
+
+        for name, param in params:
+            with torch.no_grad():
                 p = param.float()
                 snapshot[name] = {
                     "mean": p.mean().item(),
