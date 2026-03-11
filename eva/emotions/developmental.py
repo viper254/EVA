@@ -29,7 +29,7 @@ class DevelopmentalEmotions:
         """Initialize from developmental_emotions config section.
 
         Args:
-            config: ConfigSection containing emotion definitions.
+            config: ConfigSection or dict containing emotion definitions.
         """
         self._emotions: dict[str, dict[str, Any]] = {}
         self._durations: dict[str, int] = {}
@@ -38,19 +38,34 @@ class DevelopmentalEmotions:
         for emotion_name in [
             "wonder", "attachment", "pride", "shame", "curiosity_pain"
         ]:
-            if hasattr(config, emotion_name):
-                emotion_cfg = getattr(config, emotion_name)
-                region = getattr(emotion_cfg, "region", None)
+            emotion_cfg = self._get_attr_or_item(config, emotion_name)
+            if emotion_cfg is not None:
+                region = self._get_attr_or_item(emotion_cfg, "region")
                 if region is not None:
                     self._emotions[emotion_name] = {
                         "region": {
-                            dim: getattr(region, dim, [-1.0, 1.0])
+                            dim: self._get_attr_or_item(
+                                region, dim, [-1.0, 1.0]
+                            )
                             for dim in self.DIMENSION_NAMES
                         },
-                        "danger": getattr(emotion_cfg, "danger", "unknown"),
-                        "breaker": getattr(emotion_cfg, "breaker", "none"),
+                        "danger": self._get_attr_or_item(
+                            emotion_cfg, "danger", "unknown"
+                        ),
+                        "breaker": self._get_attr_or_item(
+                            emotion_cfg, "breaker", "none"
+                        ),
                     }
                     self._durations[emotion_name] = 0
+
+    @staticmethod
+    def _get_attr_or_item(
+        obj: Any, key: str, default: Any = None
+    ) -> Any:
+        """Get a value from an object by attribute or dict key."""
+        if isinstance(obj, dict):
+            return obj.get(key, default)
+        return getattr(obj, key, default)
 
     def detect(
         self, state: AffectiveState

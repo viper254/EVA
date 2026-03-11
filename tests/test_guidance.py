@@ -69,7 +69,7 @@ class TestAICaregiver:
     def test_emotional_state_update(self):
         cg = AICaregiver()
         cg.update_emotional_state(0.9)
-        assert cg._emotional_state == "happy"
+        assert cg.emotional_state == "happy"
 
 
 class TestSocraticModule:

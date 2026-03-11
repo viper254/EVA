@@ -32,10 +32,12 @@ class NamingSystem:
         consistency_threshold: float = 0.8,
         stability_steps: int = 100,
         provisional_enabled: bool = True,
+        crisis_detector: Optional[CrisisDetector] = None,
     ) -> None:
         self._consistency_threshold = consistency_threshold
         self._stability_steps = stability_steps
         self._provisional_enabled = provisional_enabled
+        self._crisis_detector = crisis_detector
 
         self._provisional_name: Optional[str] = None
         self._true_name: Optional[str] = None
@@ -74,14 +76,24 @@ class NamingSystem:
         )
         return matches / len(recent)
 
-    def check_true_name(self, crisis_detector: CrisisDetector) -> bool:
-        """Check if candidate name qualifies as a true name."""
+    def check_true_name(
+        self, crisis_detector: Optional[CrisisDetector] = None
+    ) -> bool:
+        """Check if candidate name qualifies as a true name.
+
+        Args:
+            crisis_detector: CrisisDetector to use. If None, uses the
+                             one provided at construction time.
+        """
+        detector = crisis_detector or self._crisis_detector
         if self._true_name is not None:
             return True
         if self._candidate_name is None:
             return False
+        if detector is None:
+            return False
         consistency = self.get_consistency()
-        crisis_survived = crisis_detector.crisis_survived()
+        crisis_survived = detector.crisis_survived()
         stable = self._candidate_stability >= self._stability_steps
         if consistency >= self._consistency_threshold and crisis_survived and stable:
             self._true_name = self._candidate_name
@@ -89,7 +101,7 @@ class NamingSystem:
                 "TRUE NAME ACHIEVED: '%s' (consistency=%.2f, "
                 "crises_survived=%d, stability=%d)",
                 self._true_name, consistency,
-                crisis_detector.crisis_count(), self._candidate_stability,
+                detector.crisis_count(), self._candidate_stability,
             )
             return True
         return False

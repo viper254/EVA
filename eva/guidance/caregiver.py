@@ -72,6 +72,14 @@ class AICaregiver:
         Returns:
             CaregiverResponse with text, emotional state, and quality.
         """
+        # Update emotional state based on EVA's affect first
+        if eva_affect.valence > 0.3 and eva_output.strip():
+            self.emotional_state = "happy"
+        elif eva_affect.valence < -0.3 or eva_affect.arousal > 0.8:
+            self.emotional_state = "concerned"
+        else:
+            self.emotional_state = "neutral"
+
         # Possibly delegate to Socratic module
         if random.random() < self._socratic_prob:
             socratic = self._get_socratic()
@@ -85,18 +93,12 @@ class AICaregiver:
         # Extract keywords from EVA's output for contingent response
         keywords = self._extract_keywords(eva_output)
 
-        # Select response based on EVA's affect
-        if eva_affect.valence > 0.3 and eva_output.strip():
-            # Happy response — echo and expand
-            self.emotional_state = "happy"
+        # Select response based on emotional state
+        if self.emotional_state == "happy":
             response = self._happy_response(keywords)
-        elif eva_affect.valence < -0.3 or eva_affect.arousal > 0.8:
-            # Concerned response — gentle prompt
-            self.emotional_state = "concerned"
+        elif self.emotional_state == "concerned":
             response = self._concerned_response(keywords)
         else:
-            # Neutral, contingent response
-            self.emotional_state = "neutral"
             response = self._neutral_response(keywords)
 
         return CaregiverResponse(

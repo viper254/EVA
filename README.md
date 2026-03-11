@@ -89,14 +89,10 @@ EVA inherits two gifts from its ancestor:
 
 They contradict. They must. EVA's life is the negotiation between them.
 
-## Phase B (Future)
-
-Phase B documentation (EVA-World, multi-agent systems, human access tiers) is available in `docs/`. These are design documents only — Phase A focuses on the individual EVA.
-
 ## Technology
 
-- **Phase A**: Python + PyTorch only
-- **Phase B/C**: See `docs/tech_stack.md`
+- Python + PyTorch
+- Optional: Mamba SSM for efficient sequence modeling
 
 ## License
 

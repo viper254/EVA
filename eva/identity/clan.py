@@ -39,9 +39,8 @@ class ClanDetector:
 
         Returns:
             List of (clan_name, affinity_score) sorted by affinity.
+            Returns neutral (0.5) scores for all clans if no history.
         """
-        if not any(self._behavioral_history.values()):
-            return []
         averages = self._get_averages()
         affinities: list[tuple[str, float]] = []
 

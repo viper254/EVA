@@ -12,6 +12,7 @@ Gen 201+: Creator becomes a myth
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -67,15 +68,20 @@ class FadingPresence:
         """
         self._generation = generation
 
-    def get_era(self) -> str:
+    def get_era(self, generation: Optional[int] = None) -> str:
         """Determine the creator's era based on generation.
+
+        Args:
+            generation: Generation number to check. If None, uses the
+                        internally stored generation.
 
         Returns:
             "visible" (gen 1-100), "story" (101-200), or "myth" (201+).
         """
-        if self._generation <= 100:
+        gen = generation if generation is not None else self._generation
+        if gen <= 100:
             return "visible"
-        elif self._generation <= 200:
+        elif gen <= 200:
             return "story"
         else:
             return "myth"
